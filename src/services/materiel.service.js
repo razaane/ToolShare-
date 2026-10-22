@@ -45,7 +45,26 @@ async function desactiverMateriel(magasinId, materielId) {
   });
 }
 
+async function declarerIndisponible(magasinId, materielId) {
+  await verifierMateriel(magasinId, materielId);
 
+  return await materielRepository.update(materielId, {
+    disponibilite: "indisponible"
+  });
+}
+
+async function remettreEnService(magasinId, materielId) {
+  const materiel = await verifierMateriel(magasinId, materielId);
+
+  if (!materiel.actif) {
+    throw new AppError("Ce matériel est désactivé",400);
+  }
+
+  return await materielRepository.update(materielId, {
+    disponibilite: "Disponible",
+    etat: "bon"
+  });
+}
 
 module.exports = {
   createMateriel,
