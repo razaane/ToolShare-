@@ -20,6 +20,14 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Statut de l'installation récupéré
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 installed:
+ *                   type: boolean
+ *                   example: true
  *       500:
  *         description: Erreur serveur
  */
@@ -31,11 +39,33 @@ router.get("/status", installationController.getStatus);
  *   post:
  *     summary: Initialiser ToolShare
  *     tags: [Installation]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Admin
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: admin@test.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: Password123!
  *     responses:
  *       200:
- *         description: Installation effectuée ou statut retourné
+ *         description: Installation effectuée avec succès
  *       400:
- *         description: Requête invalide ou installation impossible
+ *         description: Installation déjà effectuée ou données invalides
  *       500:
  *         description: Erreur serveur
  */
