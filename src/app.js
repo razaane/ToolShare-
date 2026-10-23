@@ -5,6 +5,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+const installationRoutes = require("./routes/installation.routes");
+
+app.use("/api/installation", installationRoutes);
 
 module.exports = app;
