@@ -131,10 +131,37 @@ async function listUsers() {
   }));
 }
 
+
+async function deactivateUser(id) {
+  const user = await userRepository.findById(id);
+
+  if (!user) {
+    throw new AppError("Utilisateur introuvable", 404);
+  }
+
+  if (user.isActive === false) {
+    throw new AppError("Ce compte est déjà désactivé", 400);
+  }
+
+  const deactivatedUser = await userRepository.update(id, {
+    isActive: false,
+  });
+
+  return {
+    id: deactivatedUser._id,
+    name: deactivatedUser.name,
+    email: deactivatedUser.email,
+    role: deactivatedUser.role,
+    isActive: deactivatedUser.isActive,
+  };
+}
+
+
 module.exports = {
   createUser,
   getUserById,
   getUserByEmail,
   updateUser,
   listUsers,
+  deactivateUser,
 };

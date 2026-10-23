@@ -17,12 +17,18 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+    
     role: {
       type: String,
       enum: ["Admin", "Gestionnaire","Utilisateur"],
       default: "Utilisateur",
     },
+
+    isActive: {
+        type: Boolean,
+        default: true,
+    }
+
   },
   {
     timestamps: true,
