@@ -14,6 +14,35 @@ async function getStatus() {
   };
 }
 
+async function install(body){
+    const status = await getStatus();
+     
+    if(status.installed === true){
+        throw new AppError("L'application est déjà installée" , 400);
+    }
 
+    validateInstall(body);
+    const HashedPasswored = await bcrypt.hash(body.password ,10);
 
-module.exports = { getStatus };
+    const user = await userRepository.create({
+        name : body.name,
+        email : body.email,
+        password: HashedPasswored,
+        role : "Admin",
+    });
+
+    await installationRepository.create({
+        installed : true,
+        installedAt : new Date(),
+    });
+
+    return {
+        id : user.id,
+        name : user.name,
+        email : user.email,
+        role:user.role,
+    }
+
+}
+
+module.exports = { getStatus , install };
