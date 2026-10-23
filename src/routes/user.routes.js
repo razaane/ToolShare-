@@ -160,4 +160,39 @@ router.get("/:id", authorize("Admin"), userController.getById);
  */
 router.put("/:id", authorize("Admin"), userController.update);
 
+
+/**
+ * @swagger
+ * /api/users/{id}/deactivate:
+ *   patch:
+ *     summary: Désactiver un compte utilisateur
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID du compte à désactiver
+ *     responses:
+ *       200:
+ *         description: Compte désactivé avec succès
+ *       400:
+ *         description: Compte déjà désactivé
+ *       401:
+ *         description: Non authentifié
+ *       403:
+ *         description: Accès refusé
+ *       404:
+ *         description: Utilisateur introuvable
+ */
+router.patch(
+  "/:id/deactivate",
+  authorize("Admin"),
+  userController.deactivate
+);
+
+
 module.exports = router;
