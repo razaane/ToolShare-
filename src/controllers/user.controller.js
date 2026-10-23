@@ -1,14 +1,18 @@
 const userService = require("../services/user.service");
 
+
 async function create(req, res, next) {
   try {
-    const user = await userService.createUser(req.body);
-
+    const user = await userService.createUser(
+      req.body,
+      req.user.role
+    );
     res.status(201).json(user);
   } catch (err) {
     next(err);
   }
 }
+
 
 async function getById(req, res, next) {
   try {

@@ -1,9 +1,34 @@
+
 const userRepository = require("../repositories/user.repository");
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 
-async function createUser(data) {
-  const existingUser = await userRepository.findByEmail(data.email);
+const ROLES = ["Admin", "Gestionnaire", "Utilisateur"];
+
+async function createUser(data, creatorRole) {
+  const role = data.role || "Utilisateur";
+
+  if (!ROLES.includes(role)) {
+    throw new AppError("Rôle invalide", 400);
+  }
+
+  if (creatorRole === "Gestionnaire" && role !== "Utilisateur") {
+    throw new AppError(
+      "Un gestionnaire peut créer uniquement des utilisateurs",
+      403
+    );
+  }
+
+  if (!["Admin", "Gestionnaire"].includes(creatorRole)) {
+    throw new AppError("Accès refusé", 403);
+  }
+
+  if (!data.name || !data.email || !data.password) {
+    throw new AppError("name, email et password sont obligatoires", 400);
+  }
+
+  const email = data.email.trim().toLowerCase();
+  const existingUser = await userRepository.findByEmail(email);
 
   if (existingUser) {
     throw new AppError("Cet email est déjà utilisé", 409);
@@ -12,10 +37,10 @@ async function createUser(data) {
   const hashedPassword = await bcrypt.hash(data.password, 10);
 
   const user = await userRepository.create({
-    name: data.name,
-    email: data.email.toLowerCase(),
+    name: data.name.trim(),
+    email,
     password: hashedPassword,
-    role: data.role || "Utilisateur",
+    role,
   });
 
   return {
@@ -28,10 +53,7 @@ async function createUser(data) {
 
 async function getUserById(id) {
   const user = await userRepository.findById(id);
-
-  if (!user) {
-    throw new AppError("Utilisateur introuvable", 404);
-  }
+  if (!user) throw new AppError("Utilisateur introuvable", 404);
 
   return {
     id: user._id,
@@ -42,11 +64,10 @@ async function getUserById(id) {
 }
 
 async function getUserByEmail(email) {
-  const user = await userRepository.findByEmail(email);
+  if (!email) throw new AppError("Email obligatoire", 400);
 
-  if (!user) {
-    throw new AppError("Utilisateur introuvable", 404);
-  }
+  const user = await userRepository.findByEmail(email.trim());
+  if (!user) throw new AppError("Utilisateur introuvable", 404);
 
   return {
     id: user._id,
@@ -58,26 +79,38 @@ async function getUserByEmail(email) {
 
 async function updateUser(id, data) {
   const user = await userRepository.findById(id);
+  if (!user) throw new AppError("Utilisateur introuvable", 404);
 
-  if (!user) {
-    throw new AppError("Utilisateur introuvable", 404);
+  // Le rôle doit être valide s'il est fourni.
+  if (data.role !== undefined && !ROLES.includes(data.role)) {
+    throw new AppError("Rôle invalide", 400);
   }
 
-  if (data.email && data.email.toLowerCase() !== user.email) {
-    const existingUser = await userRepository.findByEmail(data.email);
+  // Ne modifier que les champs autorisés.
+  const updates = {};
 
-    if (existingUser) {
-      throw new AppError("Cet email est déjà utilisé", 409);
+  if (data.name !== undefined) updates.name = data.name.trim();
+
+  if (data.email !== undefined) {
+    const email = data.email.trim().toLowerCase();
+
+    if (email !== user.email) {
+      const existingUser = await userRepository.findByEmail(email);
+      if (existingUser) {
+        throw new AppError("Cet email est déjà utilisé", 409);
+      }
     }
 
-    data.email = data.email.toLowerCase();
+    updates.email = email;
   }
 
-  if (data.password) {
-    data.password = await bcrypt.hash(data.password, 10);
+  if (data.password !== undefined && data.password !== "") {
+    updates.password = await bcrypt.hash(data.password, 10);
   }
 
-  const updatedUser = await userRepository.update(id, data);
+  if (data.role !== undefined) updates.role = data.role;
+
+  const updatedUser = await userRepository.update(id, updates);
 
   return {
     id: updatedUser._id,
