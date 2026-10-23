@@ -57,10 +57,26 @@ async function list(req, res, next) {
   }
 }
 
+
+async function deactivate(req, res, next) {
+  try {
+    const user = await userService.deactivateUser(req.params.id);
+
+    res.status(200).json({
+      message: "Compte désactivé avec succès",
+      user,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
 module.exports = {
   create,
   getById,
   getByEmail,
   update,
   list,
+  deactivate,
 };
