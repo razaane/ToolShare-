@@ -8,4 +8,6 @@ async function create(data){
     return Installation.create(data);
 }
 
-module.exports = { find ,create};
+
+module.exports = { find ,
+    create};
