@@ -8,10 +8,13 @@ app.use(express.json());
 
 const installationRoutes = require("./routes/installation.routes");
 const userRoutes = require("./routes/user.routes");
+const storeRoutes = require("./routes/store.routes");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/installation", installationRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/stores", storeRoutes);
+app.use("/api/magasins", storeRoutes);
 
 // Middleware global de gestion des erreurs
 app.use((err, req, res, next) => {
