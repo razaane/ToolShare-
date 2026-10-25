@@ -1,4 +1,8 @@
 const userService = require("../services/user.service");
+const {
+  validateChangePassword,
+  validateUpdateProfile,
+} = require("../validators/user.validator");
 
 /**
  * Récupérer le profil de l'utilisateur connecté (GET /api/users/me)
@@ -21,6 +25,7 @@ const getMe = async (req, res, next) => {
  */
 const updateMe = async (req, res, next) => {
   try {
+    validateUpdateProfile(req.body);
     const updatedProfile = await userService.updateProfile(req.user.id, req.body);
     return res.status(200).json({
       success: true,
@@ -37,6 +42,7 @@ const updateMe = async (req, res, next) => {
  */
 const changePassword = async (req, res, next) => {
   try {
+    validateChangePassword(req.body);
     const { currentPassword, newPassword } = req.body;
     const result = await userService.changePassword(
       req.user.id,
