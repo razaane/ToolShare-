@@ -1,5 +1,5 @@
 
-const Materiel = require("../models/Materiel");
+const Materiel = require("../models/materiel.model");
 
 async function create(data) {
   return await Materiel.create(data);
