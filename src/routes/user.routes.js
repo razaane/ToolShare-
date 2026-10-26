@@ -1,25 +1,115 @@
-
 const express = require("express");
-const router = express.Router();
-
 const userController = require("../controllers/user.controller");
-const authenticate = require("../middlewares/authenticate");
-const authorize = require("../middlewares/authorize");
+const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
-router.use(authenticate);
+const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: Users
- *   description: Gestion des comptes utilisateurs
+ *   - name: Utilisateurs
+ *     description: Gestion du profil (EPIC 9 - Adnane)
+ *   - name: Users
+ *     description: Gestion des comptes (EPIC 7 - Razane)
  */
+
+// ============================================================
+// EPIC 9 (Adnane) : Routes profil et mot de passe
+// ============================================================
+
+/**
+ * @swagger
+ * /api/users/me:
+ *   get:
+ *     summary: Consulter son profil utilisateur
+ *     tags: [Utilisateurs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profil récupéré avec succès
+ *       401:
+ *         description: Non authentifié
+ *       404:
+ *         description: Utilisateur introuvable
+ */
+router.get("/me", authenticate, userController.getMe);
+
+/**
+ * @swagger
+ * /api/users/me:
+ *   put:
+ *     summary: Modifier son profil (rôle et mot de passe non modifiables)
+ *     tags: [Utilisateurs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Adnane
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: adnane@test.com
+ *     responses:
+ *       200:
+ *         description: Profil mis à jour
+ *       400:
+ *         description: Modification non autorisée ou email déjà utilisé
+ *       401:
+ *         description: Non authentifié
+ */
+router.put("/me", authenticate, userController.updateMe);
+
+/**
+ * @swagger
+ * /api/users/me/password:
+ *   patch:
+ *     summary: Changer son mot de passe
+ *     tags: [Utilisateurs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Mot de passe modifié avec succès
+ *       400:
+ *         description: Mot de passe actuel incorrect ou format invalide
+ *       401:
+ *         description: Non authentifié
+ */
+router.patch("/me/password", authenticate, userController.changePassword);
+
+// ============================================================
+// EPIC 7 (Razane) : Routes admin gestion des comptes
+// ============================================================
 
 /**
  * @swagger
  * /api/users:
  *   post:
- *     summary: Créer un compte
+ *     summary: Créer un compte (Admin ou Gestionnaire)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -38,28 +128,16 @@ router.use(authenticate);
  *                 format: email
  *               password:
  *                 type: string
- *                 format: password
  *               role:
  *                 type: string
  *                 enum: [Admin, Gestionnaire, Utilisateur]
- *               magasin:
- *                 type: string
- *                 description: ID du magasin, pour un Gestionnaire créé par l'Admin
  *     responses:
  *       201:
  *         description: Compte créé
- *       401:
- *         description: Non authentifié
- *       403:
- *         description: Rôle non autorisé
  *       409:
  *         description: Email déjà utilisé
  */
-router.post(
-  "/",
-  authorize("Admin", "Gestionnaire"),
-  userController.create
-);
+router.post("/", authenticate, authorize("Admin", "Gestionnaire"), userController.create);
 
 /**
  * @swagger
@@ -73,11 +151,9 @@ router.post(
  *       200:
  *         description: Liste des comptes
  */
-router.get("/", authorize("Admin"), userController.list);
+router.get("/", authenticate, authorize("Admin"), userController.list);
 
 /**
- * IMPORTANT : cette route doit précéder /:id.
- *
  * @swagger
  * /api/users/by-email:
  *   get:
@@ -98,13 +174,13 @@ router.get("/", authorize("Admin"), userController.list);
  *       404:
  *         description: Compte introuvable
  */
-router.get("/by-email", authorize("Admin"), userController.getByEmail);
+router.get("/by-email", authenticate, authorize("Admin"), userController.getByEmail);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   get:
- *     summary: Récupérer un compte par ID (Admin uniquement)
+ *     summary: Récupérer un compte par ID (Admin)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -118,15 +194,15 @@ router.get("/by-email", authorize("Admin"), userController.getByEmail);
  *       200:
  *         description: Compte trouvé
  *       404:
- *         description: Compte introuvable
+ *         description: Introuvable
  */
-router.get("/:id", authorize("Admin"), userController.getById);
+router.get("/:id", authenticate, authorize("Admin"), userController.getById);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   put:
- *     summary: Modifier un compte (Admin uniquement)
+ *     summary: Modifier un compte (Admin)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -136,36 +212,19 @@ router.get("/:id", authorize("Admin"), userController.getById);
  *         required: true
  *         schema:
  *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [Admin, Gestionnaire, Utilisateur]
  *     responses:
  *       200:
  *         description: Compte modifié
  *       404:
- *         description: Compte introuvable
+ *         description: Introuvable
  */
-router.put("/:id", authorize("Admin"), userController.update);
-
+router.put("/:id", authenticate, authorize("Admin"), userController.update);
 
 /**
  * @swagger
  * /api/users/{id}/deactivate:
  *   patch:
- *     summary: Désactiver un compte utilisateur
+ *     summary: Désactiver un compte (Admin)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -175,24 +234,14 @@ router.put("/:id", authorize("Admin"), userController.update);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID du compte à désactiver
  *     responses:
  *       200:
- *         description: Compte désactivé avec succès
+ *         description: Compte désactivé
  *       400:
- *         description: Compte déjà désactivé
- *       401:
- *         description: Non authentifié
- *       403:
- *         description: Accès refusé
+ *         description: Déjà désactivé
  *       404:
- *         description: Utilisateur introuvable
+ *         description: Introuvable
  */
-router.patch(
-  "/:id/deactivate",
-  authorize("Admin"),
-  userController.deactivate
-);
-
+router.patch("/:id/deactivate", authenticate, authorize("Admin"), userController.deactivate);
 
 module.exports = router;

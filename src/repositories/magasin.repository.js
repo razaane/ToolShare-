@@ -8,6 +8,10 @@ async function findById(id) {
   return await Magasin.findById(id);
 }
 
+async function findActive() {
+  return await Magasin.find({ isActive: true }).sort({ nom: 1 });
+}
+
 async function findAll() {
   return await Magasin.find().sort({ createdAt: -1 });
 }
@@ -26,6 +30,7 @@ async function remove(id) {
 module.exports = {
   create,
   findById,
+  findActive,
   findAll,
   update,
   remove,
