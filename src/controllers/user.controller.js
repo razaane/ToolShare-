@@ -21,7 +21,7 @@ const getMe = async (req, res, next) => {
 
 /**
  * Mettre à jour le profil de l'utilisateur connecté (PUT /api/users/me)
- * Règle : Rôle et mot de passe non modifiables
+ * Règle : Rôle et mot de passe non modifiables (TL-129)
  */
 const updateMe = async (req, res, next) => {
   try {
@@ -38,7 +38,7 @@ const updateMe = async (req, res, next) => {
 };
 
 /**
- * Modifier son mot de passe (PATCH /api/users/me/password)
+ * Modifier son mot de passe (PATCH /api/users/me/password) (TL-130)
  */
 const changePassword = async (req, res, next) => {
   try {
@@ -58,8 +58,75 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+// --- Fonctions Admin (EPIC 7 - Razane) ---
+
+async function create(req, res, next) {
+  try {
+    const user = await userService.createUser(req.body, req.user.role);
+    res.status(201).json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getById(req, res, next) {
+  try {
+    const user = await userService.getUserById(req.params.id);
+    res.status(200).json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function getByEmail(req, res, next) {
+  try {
+    const user = await userService.getUserByEmail(req.query.email);
+    res.status(200).json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function update(req, res, next) {
+  try {
+    const user = await userService.updateUser(req.params.id, req.body);
+    res.status(200).json(user);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function list(req, res, next) {
+  try {
+    const users = await userService.listUsers();
+    res.status(200).json(users);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function deactivate(req, res, next) {
+  try {
+    const user = await userService.deactivateUser(req.params.id);
+    res.status(200).json({
+      message: "Compte désactivé avec succès",
+      user,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
+  // EPIC 9 (Adnane)
   getMe,
   updateMe,
   changePassword,
+  // EPIC 7 Admin (Razane)
+  create,
+  getById,
+  getByEmail,
+  update,
+  list,
+  deactivate,
 };

@@ -1,15 +1,21 @@
 const express = require("express");
 const userController = require("../controllers/user.controller");
-const { authenticate } = require("../middlewares/auth.middleware");
+const { authenticate, authorize } = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: Utilisateurs
- *   description: Gestion du profil et des utilisateurs
+ *   - name: Utilisateurs
+ *     description: Gestion du profil (EPIC 9 - Adnane)
+ *   - name: Users
+ *     description: Gestion des comptes (EPIC 7 - Razane)
  */
+
+// ============================================================
+// EPIC 9 (Adnane) : Routes profil et mot de passe
+// ============================================================
 
 /**
  * @swagger
@@ -94,5 +100,148 @@ router.put("/me", authenticate, userController.updateMe);
  *         description: Non authentifié
  */
 router.patch("/me/password", authenticate, userController.changePassword);
+
+// ============================================================
+// EPIC 7 (Razane) : Routes admin gestion des comptes
+// ============================================================
+
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Créer un compte (Admin ou Gestionnaire)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [Admin, Gestionnaire, Utilisateur]
+ *     responses:
+ *       201:
+ *         description: Compte créé
+ *       409:
+ *         description: Email déjà utilisé
+ */
+router.post("/", authenticate, authorize("Admin", "Gestionnaire"), userController.create);
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Lister les comptes (Admin uniquement)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Liste des comptes
+ */
+router.get("/", authenticate, authorize("Admin"), userController.list);
+
+/**
+ * @swagger
+ * /api/users/by-email:
+ *   get:
+ *     summary: Rechercher un compte par email (Admin uniquement)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *     responses:
+ *       200:
+ *         description: Compte trouvé
+ *       404:
+ *         description: Compte introuvable
+ */
+router.get("/by-email", authenticate, authorize("Admin"), userController.getByEmail);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Récupérer un compte par ID (Admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Compte trouvé
+ *       404:
+ *         description: Introuvable
+ */
+router.get("/:id", authenticate, authorize("Admin"), userController.getById);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Modifier un compte (Admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Compte modifié
+ *       404:
+ *         description: Introuvable
+ */
+router.put("/:id", authenticate, authorize("Admin"), userController.update);
+
+/**
+ * @swagger
+ * /api/users/{id}/deactivate:
+ *   patch:
+ *     summary: Désactiver un compte (Admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Compte désactivé
+ *       400:
+ *         description: Déjà désactivé
+ *       404:
+ *         description: Introuvable
+ */
+router.patch("/:id/deactivate", authenticate, authorize("Admin"), userController.deactivate);
 
 module.exports = router;

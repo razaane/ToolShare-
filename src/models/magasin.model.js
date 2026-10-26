@@ -17,7 +17,7 @@ const magasinSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    actif: {
+    isActive: {
       type: Boolean,
       default: true,
     },
@@ -27,18 +27,9 @@ const magasinSchema = new mongoose.Schema(
   }
 );
 
-// Getter virtuel isActive pour compatibilité
-magasinSchema.virtual("isActive").get(function () {
-  return this.actif;
+// Alias "actif" pour compatibilité avec le service store
+magasinSchema.virtual("actif").get(function () {
+  return this.isActive;
 });
 
-const Magasin = mongoose.model("Magasin", magasinSchema);
-
-// Enregistrement d'un alias "Store" pour compatibilité de modèle
-try {
-  mongoose.model("Store", magasinSchema);
-} catch (e) {
-  // Déjà enregistré
-}
-
-module.exports = Magasin;
+module.exports = mongoose.model("Magasin", magasinSchema);

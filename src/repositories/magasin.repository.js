@@ -9,11 +9,11 @@ async function findById(id) {
 }
 
 async function findActive() {
-  return await Magasin.find({ actif: true }).sort({ nom: 1 });
+  return await Magasin.find({ isActive: true }).sort({ nom: 1 });
 }
 
-async function list() {
-  return await Magasin.find().sort({ nom: 1 });
+async function findAll() {
+  return await Magasin.find().sort({ createdAt: -1 });
 }
 
 async function update(id, data) {
@@ -23,10 +23,15 @@ async function update(id, data) {
   });
 }
 
+async function remove(id) {
+  return await Magasin.findByIdAndDelete(id);
+}
+
 module.exports = {
   create,
   findById,
   findActive,
-  list,
+  findAll,
   update,
+  remove,
 };

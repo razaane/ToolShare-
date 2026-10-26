@@ -1,9 +1,16 @@
-require('dotenv').config();
-const app = require('./app');
-const connectDB = require('./config/db');
+const mongoose = require("mongoose");
+const config = require("./config/env");
+const app = require("./app");
 
-const PORT = process.env.PORT || 3000;
-
-connectDB().then(() => {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-});
+mongoose
+  .connect(config.mongoUri)
+  .then(() => {
+    console.log("MongoDB connected");
+    app.listen(config.port, () => {
+      console.log(`Server running on port ${config.port}`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1);
+  });
