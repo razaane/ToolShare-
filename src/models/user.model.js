@@ -27,8 +27,12 @@ const userSchema = new mongoose.Schema(
     isActive: {
         type: Boolean,
         default: true,
-    }
-
+    },
+    magasin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Magasin",
+      default: null,
+    },
   },
   {
     timestamps: true,
