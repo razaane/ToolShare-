@@ -77,10 +77,47 @@ async function deactivateMagasin(id) {
   });
 }
 
+async function assignManager(magasinId, managerId) {
+  const magasin = await magasinRepository.findById(magasinId);
+
+  if (!magasin) {
+    throw new AppError("Magasin introuvable", 404);
+  }
+
+  if (magasin.isActive === false) {
+    throw new AppError("Impossible d'affecter un gestionnaire à un magasin désactivé", 400);
+  }
+
+  const manager = await userRepository.findById(managerId);
+
+  if (!manager) {
+    throw new AppError("Gestionnaire introuvable", 404);
+  }
+
+  if (manager.role !== "Gestionnaire") {
+    throw new AppError(
+      "Le compte doit avoir le rôle Gestionnaire",
+      400
+    );
+  }
+
+  if (manager.isActive === false) {
+    throw new AppError(
+      "Le gestionnaire est désactivé",
+      400
+    );
+  }
+
+  return await userRepository.update(managerId, {
+    magasin: magasinId,
+  });
+}
+
 module.exports = {
   createMagasin,
   getMagasinById,
   listMagasins,
   updateMagasin,
   deactivateMagasin,
+  assignManager,
 };
