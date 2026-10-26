@@ -61,11 +61,26 @@ async function updateMagasin(id, data) {
   return await magasinRepository.update(id, updates);
 }
 
+async function deactivateMagasin(id) {
+  const magasin = await magasinRepository.findById(id);
 
+  if (!magasin) {
+    throw new AppError("Magasin introuvable", 404);
+  }
+
+  if (magasin.isActive === false) {
+    throw new AppError("Ce magasin est déjà désactivé", 400);
+  }
+
+  return await magasinRepository.update(id, {
+    isActive: false,
+  });
+}
 
 module.exports = {
   createMagasin,
   getMagasinById,
   listMagasins,
   updateMagasin,
+  deactivateMagasin,
 };
