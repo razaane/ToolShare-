@@ -4,58 +4,58 @@ const reservationSchema = new mongoose.Schema(
   {
     utilisateur: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Compte",
-      required: true
+      ref: "User",
+      required: true,
     },
 
     materiel: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Materiel",
-      required: true
+      required: true,
     },
 
     magasin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Magasin",
-      required: true
+      required: true,
     },
 
     dateDebut: {
       type: Date,
-      required: true
+      required: true,
     },
 
     duree: {
       type: Number,
-      required: true
+      required: true,
     },
 
     dateFin: {
       type: Date,
-      required: true
+      required: true,
     },
 
     dateRemise: {
-      type: Date
+      type: Date,
     },
 
     dateRetourEffective: {
-      type: Date
+      type: Date,
     },
 
     etatRetour: {
       type: String,
-      enum: ["bon", "endommagé"]
+      enum: ["bon", "endommagé"],
     },
 
     status: {
       type: String,
       enum: ["confirmée", "annulée", "en cours", "terminée"],
-      default: "confirmée"
-    }
+      default: "confirmée",
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

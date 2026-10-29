@@ -13,6 +13,7 @@ const equipmentRoutes = require("./routes/equipment.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminMagasinRoutes = require("./routes/adminMagasin.routes");
 const magasinRoutes = require("./routes/magasin.routes");
+const reservationRoutes = require("./routes/reservation.routes");
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/installation", installationRoutes);
@@ -23,6 +24,7 @@ app.use("/api/stores", storeRoutes);
 app.use("/api/magasins", storeRoutes);
 app.use("/api/equipments", equipmentRoutes);
 app.use("/api/materiels", equipmentRoutes);
+app.use("/api/reservations", reservationRoutes);
 
 // Middleware global de gestion des erreurs
 app.use((err, req, res, next) => {
