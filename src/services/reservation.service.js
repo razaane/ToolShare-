@@ -117,6 +117,82 @@ const createReservation = async ({ userId, magasinId, materielId, dateDebut, dur
   }
 };
 
+/**
+ * TL-52 / TL-143 : Consulter ses réservations
+ */
+const getMyReservations = async (userId) => {
+  if (!userId) {
+    throw new AppError("Utilisateur non authentifié", 401);
+  }
+  return await reservationRepository.findByUser(userId);
+};
+
+/**
+ * TL-52 : Consulter le détail d'une réservation (propriétaire uniquement)
+ */
+const getReservationById = async (reservationId, userId) => {
+  const reservation = await reservationRepository.findById(reservationId);
+  if (!reservation) {
+    throw new AppError("Réservation introuvable", 404);
+  }
+
+  const ownerId = reservation.utilisateur && reservation.utilisateur._id
+    ? reservation.utilisateur._id.toString()
+    : reservation.utilisateur.toString();
+
+  if (ownerId !== userId.toString()) {
+    throw new AppError("Accès refusé à cette réservation", 403);
+  }
+
+  return reservation;
+};
+
+/**
+ * TL-52 / TL-144 : Annuler une réservation confirmée avant son début
+ */
+const cancelReservation = async (reservationId, userId) => {
+  const reservation = await reservationRepository.findById(reservationId);
+  if (!reservation) {
+    throw new AppError("Réservation introuvable", 404);
+  }
+
+  // Vérifier la propriété de la réservation (403 si autre utilisateur)
+  const ownerId = reservation.utilisateur && reservation.utilisateur._id
+    ? reservation.utilisateur._id.toString()
+    : reservation.utilisateur.toString();
+
+  if (ownerId !== userId.toString()) {
+    throw new AppError("Vous n'êtes pas autorisé à annuler cette réservation", 403);
+  }
+
+  // Vérifier que la réservation est encore au statut confirmée
+  if (reservation.status !== "confirmée") {
+    throw new AppError("Seule une réservation confirmée peut être annulée", 400);
+  }
+
+  // Vérifier que la réservation n'a pas déjà débuté
+  if (new Date(reservation.dateDebut).getTime() <= Date.now()) {
+    throw new AppError("Impossible d'annuler une réservation déjà commencée ou passée", 400);
+  }
+
+  // Mettre à jour le statut à "annulée"
+  return await reservationRepository.update(reservationId, { status: "annulée" });
+};
+
+/**
+ * TL-52 / TL-145 : Consulter ses emprunts (en cours ou terminés)
+ */
+const getMyEmprunts = async (userId) => {
+  if (!userId) {
+    throw new AppError("Utilisateur non authentifié", 401);
+  }
+  return await reservationRepository.findEmpruntsByUser(userId);
+};
+
 module.exports = {
   createReservation,
+  getMyReservations,
+  getReservationById,
+  cancelReservation,
+  getMyEmprunts,
 };
