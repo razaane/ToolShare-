@@ -5,7 +5,7 @@ const magasinRepository = require("../repositories/magasin.repository");
 const AppError = require("../utils/AppError");
 
 /**
- * TL-49 : Créer une réservation avec validation des règles métier et calcul de fin
+ * TL-49 & TL-50 : Créer une réservation avec détection des chevauchements
  */
 const createReservation = async ({ userId, magasinId, materielId, dateDebut, duree }) => {
   // 1. Validation de la présence des champs obligatoires
@@ -61,7 +61,18 @@ const createReservation = async ({ userId, magasinId, materielId, dateDebut, dur
     throw new AppError("Le matériel est indisponible ou endommagé", 400);
   }
 
-  // Création simple de la réservation
+  // 9. TL-50 : Détection des chevauchements (statuts bloquants : "confirmée", "en cours")
+  const overlapping = await reservationRepository.findOverlapping(
+    materielId,
+    startDate,
+    endDate
+  );
+
+  if (overlapping && overlapping.length > 0) {
+    throw new AppError("Le matériel est déjà réservé sur ce créneau", 409);
+  }
+
+  // Création de la réservation
   const reservationData = {
     utilisateur: userId,
     magasin: magasinId,
