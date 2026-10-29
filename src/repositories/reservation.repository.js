@@ -1,9 +1,15 @@
 const Reservation = require("../models/reservation.model");
 
-async function create(data) {
+// Créer une nouvelle réservation
+async function create(data, options = {}) {
+  if (options.session) {
+    const created = await Reservation.create([data], { session: options.session });
+    return created[0];
+  }
   return await Reservation.create(data);
 }
 
+// Trouver une réservation par son ID avec les détails associés
 async function findById(id) {
   return await Reservation.findById(id)
     .populate("utilisateur", "name email role")
@@ -11,22 +17,23 @@ async function findById(id) {
     .populate("magasin", "nom site adresse");
 }
 
-/**
- * Chercher les réservations actives qui chevauchent le créneau [startAt, endAt[
- * Règle TL-50 / TL-140 :
- * - Statuts bloquants : "confirmée", "en cours"
- * - Chevauchement : dateDebut < endAt && dateFin > startAt
- * - début == fin est autorisé (pas de chevauchement)
- */
-async function findOverlapping(materielId, startAt, endAt) {
-  return await Reservation.find({
+// Chercher les réservations actives qui se chevauchent sur le créneau
+async function findOverlapping(materielId, startAt, endAt, options = {}) {
+  const query = Reservation.find({
     materiel: materielId,
     status: { $in: ["confirmée", "en cours"] },
     dateDebut: { $lt: endAt },
     dateFin: { $gt: startAt },
   });
+
+  if (options.session) {
+    query.session(options.session);
+  }
+
+  return await query;
 }
 
+// Trouver toutes les réservations d'un utilisateur
 async function findByUser(userId) {
   return await Reservation.find({ utilisateur: userId })
     .populate("materiel", "nom reference")
@@ -34,6 +41,18 @@ async function findByUser(userId) {
     .sort({ dateDebut: -1 });
 }
 
+// Trouver les emprunts d'un utilisateur (en cours ou terminés)
+async function findEmpruntsByUser(userId) {
+  return await Reservation.find({
+    utilisateur: userId,
+    status: { $in: ["en cours", "terminée"] },
+  })
+    .populate("materiel", "nom reference")
+    .populate("magasin", "nom site")
+    .sort({ dateDebut: -1 });
+}
+
+// Trouver les réservations d'un magasin
 async function findByStore(magasinId, filters = {}) {
   const query = { magasin: magasinId };
   if (filters.status) query.status = filters.status;
@@ -44,10 +63,12 @@ async function findByStore(magasinId, filters = {}) {
     .sort({ dateDebut: -1 });
 }
 
-async function update(id, data) {
+// Mettre à jour une réservation
+async function update(id, data, options = {}) {
   return await Reservation.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
+    ...(options.session ? { session: options.session } : {}),
   });
 }
 
@@ -56,6 +77,7 @@ module.exports = {
   findById,
   findOverlapping,
   findByUser,
+  findEmpruntsByUser,
   findByStore,
   update,
 };
