@@ -63,12 +63,13 @@ const createReservation = async ({ userId, magasinId, materielId, dateDebut, dur
 
   // 9 & 10. TL-51 : Gestion de la concurrence avec session / transaction
   let session = null;
-  try {
-    session = await mongoose.startSession();
-    session.startTransaction();
-  } catch (err) {
-    // Si standalone mongo (sans replica set), on continue sans session
-    session = null;
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (err) {
+      session = null;
+    }
   }
 
   try {
