@@ -59,4 +59,7 @@ const reservationSchema = new mongoose.Schema(
   }
 );
 
+// Index composé pour optimiser les requêtes de disponibilité et chevauchement (TL-135)
+reservationSchema.index({ materiel: 1, dateDebut: 1, dateFin: 1 });
+
 module.exports = mongoose.model("Reservation", reservationSchema);
