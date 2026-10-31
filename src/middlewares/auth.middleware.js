@@ -34,13 +34,14 @@ const authenticate = async (req, res, next) => {
       return next(new AppError("L'utilisateur associé à ce jeton n'existe plus", 401));
     }
 
-    // Injection de l'utilisateur dans la requête
+    // Injection de l'utilisateur dans la requête (avec magasin pour le gestionnaire)
     req.user = {
       id: user._id.toString(),
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      magasin: user.magasin ? user.magasin.toString() : null,
     };
 
     next();
