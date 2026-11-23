@@ -57,10 +57,49 @@ async function findByStore(magasinId, filters = {}) {
   const query = { magasin: magasinId };
   if (filters.status) query.status = filters.status;
   if (filters.materiel) query.materiel = filters.materiel;
+
+  // Filtre par période : réservations qui commencent entre "from" et "to"
+  if (filters.from || filters.to) {
+    query.dateDebut = {};
+    if (filters.from) query.dateDebut.$gte = filters.from;
+    if (filters.to) query.dateDebut.$lte = filters.to;
+  }
+
   return await Reservation.find(query)
     .populate("utilisateur", "name email")
     .populate("materiel", "nom reference")
     .sort({ dateDebut: -1 });
+}
+
+// Un autre emprunt "en cours" existe-t-il déjà pour ce matériel ?
+async function findInProgressByMateriel(materielId, excludeId) {
+  const query = { materiel: materielId, status: "en cours" };
+  if (excludeId) query._id = { $ne: excludeId };
+  return await Reservation.findOne(query);
+}
+
+// Emprunts en retard : "en cours", date de fin dépassée, pas de retour
+async function findOverdueByStore(magasinId, now = new Date()) {
+  return await Reservation.find({
+    magasin: magasinId,
+    status: "en cours",
+    dateFin: { $lt: now },
+    dateRetourEffective: { $exists: false },
+  })
+    .populate("utilisateur", "name email")
+    .populate("materiel", "nom reference")
+    .sort({ dateFin: 1 });
+}
+
+// Historique des mouvements (remises et retours) d'un magasin
+async function findHistoryByStore(magasinId) {
+  return await Reservation.find({
+    magasin: magasinId,
+    status: { $in: ["en cours", "terminée"] },
+  })
+    .populate("utilisateur", "name email")
+    .populate("materiel", "nom reference")
+    .sort({ dateRemise: -1 });
 }
 
 // Mettre à jour une réservation
@@ -80,4 +119,7 @@ module.exports = {
   findEmpruntsByUser,
   findByStore,
   update,
+  findInProgressByMateriel,
+  findHistoryByStore,
+  findOverdueByStore
 };

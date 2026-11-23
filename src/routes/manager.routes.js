@@ -24,4 +24,14 @@ router.post("/users", managerController.createUser);
 // --- Reservations du magasin ---
 router.get("/reservations", managerController.getStoreReservations);
 
+// --- Retards et historique (declarees avant "/reservations/:id") ---
+router.get("/reservations/overdue", managerController.getOverdueLoans);
+router.get("/reservations/history", managerController.getStoreHistory);
+
+router.get("/reservations/:id", managerController.getStoreReservationById);
+
+// --- Remise et retour du materiel ---
+router.patch("/reservations/:id/handover", managerController.handOverReservation);
+router.patch("/reservations/:id/return", managerController.returnReservation);
+
 module.exports = router;

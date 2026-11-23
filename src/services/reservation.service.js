@@ -190,10 +190,175 @@ const getMyEmprunts = async (userId) => {
   return await reservationRepository.findEmpruntsByUser(userId);
 };
 
+const STATUTS = ["confirmée", "annulée", "en cours", "terminée"];
+const ETATS_RETOUR = ["bon", "endommagé"];
+
+// Retourne l'id (string) d'un champ qui peut être peuplé ou non
+const idOf = (value) => (value && value._id ? value._id : value).toString();
+
+const assertObjectId = (id, label) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(`${label} invalide`, 400);
+  }
+};
+
+// Convertit une date de filtre (une date seule "2026-11-30" = fin de journée pour "to")
+const parseFilterDate = (value, label, endOfDay = false) => {
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    throw new AppError(`${label} invalide`, 400);
+  }
+  if (endOfDay && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    date.setUTCHours(23, 59, 59, 999);
+  }
+  return date;
+};
+
+// Charge une réservation et vérifie qu'elle appartient au magasin du gestionnaire
+const getStoreReservation = async (reservationId, magasinId) => {
+  assertObjectId(reservationId, "Identifiant de réservation");
+
+  const reservation = await reservationRepository.findById(reservationId);
+  if (!reservation) {
+    throw new AppError("Réservation introuvable", 404);
+  }
+  if (!magasinId || idOf(reservation.magasin) !== magasinId.toString()) {
+    throw new AppError("Accès refusé : cette réservation n'appartient pas à votre magasin", 403);
+  }
+  return reservation;
+};
+
+/**
+ * TL-161 / TL-162 : Réservations du magasin avec filtres (statut, matériel, période)
+ * query : { status, materiel, from, to }
+ */
+const listStoreReservations = async (magasinId, query = {}) => {
+  const filters = {};
+
+  if (query.status) {
+    if (!STATUTS.includes(query.status)) {
+      throw new AppError("Statut invalide", 400);
+    }
+    filters.status = query.status;
+  }
+
+  if (query.materiel) {
+    assertObjectId(query.materiel, "Identifiant de matériel");
+    filters.materiel = query.materiel;
+  }
+
+  if (query.from) filters.from = parseFilterDate(query.from, "Date de début de période");
+  if (query.to) filters.to = parseFilterDate(query.to, "Date de fin de période", true);
+
+  if (filters.from && filters.to && filters.from > filters.to) {
+    throw new AppError("La période est invalide : from doit précéder to", 400);
+  }
+
+  return await reservationRepository.findByStore(magasinId, filters);
+};
+
+/**
+ * Détail d'une réservation du magasin du gestionnaire
+ */
+const getStoreReservationDetails = async (reservationId, magasinId) => {
+  return await getStoreReservation(reservationId, magasinId);
+};
+
+/**
+ * TL-163 / TL-164 : Remise du matériel (confirmée -> en cours)
+ */
+const handOverReservation = async (reservationId, magasinId) => {
+  const reservation = await getStoreReservation(reservationId, magasinId);
+
+  if (reservation.status !== "confirmée") {
+    throw new AppError(
+      `Transition interdite : une réservation "${reservation.status}" ne peut pas être remise`,
+      409
+    );
+  }
+
+  const materielId = idOf(reservation.materiel);
+
+  // Le matériel ne doit pas être déjà emprunté (autre réservation "en cours")
+  const dejaEmprunte = await reservationRepository.findInProgressByMateriel(
+    materielId,
+    reservationId
+  );
+  if (dejaEmprunte) {
+    throw new AppError("Ce matériel est déjà emprunté", 409);
+  }
+
+  // Un matériel indisponible ou endommagé ne peut pas être remis
+  const materiel = reservation.materiel;
+  if (materiel && (materiel.disponibilite === "indisponible" || materiel.etat === "endommagé")) {
+    throw new AppError("Ce matériel est indisponible ou endommagé", 409);
+  }
+
+  return await reservationRepository.update(reservationId, {
+    status: "en cours",
+    dateRemise: new Date(),
+  });
+};
+
+/**
+ * TL-165 / TL-166 : Retour du matériel (en cours -> terminée)
+ * Si le matériel est retourné "endommagé", il devient indisponible.
+ */
+const returnReservation = async (reservationId, magasinId, { etatRetour } = {}) => {
+  if (!ETATS_RETOUR.includes(etatRetour)) {
+    throw new AppError('L\'état constaté est obligatoire ("bon" ou "endommagé")', 400);
+  }
+
+  const reservation = await getStoreReservation(reservationId, magasinId);
+
+  if (reservation.status !== "en cours") {
+    throw new AppError(
+      `Transition interdite : une réservation "${reservation.status}" ne peut pas être retournée`,
+      409
+    );
+  }
+
+  const updated = await reservationRepository.update(reservationId, {
+    status: "terminée",
+    dateRetourEffective: new Date(),
+    etatRetour,
+  });
+
+  if (etatRetour === "endommagé") {
+    await materielRepository.update(idOf(reservation.materiel), {
+      etat: "endommagé",
+      disponibilite: "indisponible",
+    });
+  }
+
+  return updated;
+};
+
+/**
+ * TL-167 : Emprunts en retard (date de fin dépassée sans retour)
+ */
+const listOverdueLoans = async (magasinId) => {
+  return await reservationRepository.findOverdueByStore(magasinId, new Date());
+};
+
+/**
+ * TL-168 : Historique des mouvements du magasin
+ */
+const listStoreHistory = async (magasinId) => {
+  return await reservationRepository.findHistoryByStore(magasinId);
+};
+
 module.exports = {
   createReservation,
   getMyReservations,
   getReservationById,
   cancelReservation,
   getMyEmprunts,
+  // Espace Gestionnaire
+  listStoreReservations,
+  getStoreReservationDetails,
+  handOverReservation,
+  returnReservation,
+  listOverdueLoans,
+  listStoreHistory,
 };
