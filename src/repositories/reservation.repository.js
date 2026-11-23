@@ -111,6 +111,28 @@ async function update(id, data, options = {}) {
   });
 }
 
+async function findAll(filters = {}) {
+  const query = {};
+  if (filters.status) query.status = filters.status;
+  if (filters.magasin) query.magasin = filters.magasin;
+  if (filters.materiel) query.materiel = filters.materiel;
+  if (filters.from || filters.to) {
+    query.dateDebut = {};
+    if (filters.from) query.dateDebut.$gte = filters.from;
+    if (filters.to) query.dateDebut.$lte = filters.to;
+  }
+  return await Reservation.find(query)
+    .populate("utilisateur", "name email")
+    .populate("materiel", "nom reference")
+    .populate("magasin", "nom site")
+    .sort({ dateDebut: -1 });
+}
+
+async function countByStatus() {
+  return await Reservation.aggregate([
+    { $group: { _id: "$status", count: { $sum: 1 } } },
+  ]);
+}
 module.exports = {
   create,
   findById,
@@ -121,5 +143,7 @@ module.exports = {
   update,
   findInProgressByMateriel,
   findHistoryByStore,
-  findOverdueByStore
+  findOverdueByStore,
+  findAll,
+  countByStatus
 };

@@ -3,7 +3,7 @@ const cors = require('cors');
 const { swaggerUi, swaggerSpec } = require("./swagger");
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 
 const installationRoutes = require("./routes/installation.routes");
@@ -16,11 +16,14 @@ const magasinRoutes = require("./routes/magasin.routes");
 const reservationRoutes = require("./routes/reservation.routes");
 const managerRoutes = require("./routes/manager.routes");
 
+const adminRoutes = require("./routes/admin.routes");
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/installation", installationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin/stores", adminMagasinRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/stores", storeRoutes);
 app.use("/api/magasins", storeRoutes);
 app.use("/api/equipments", equipmentRoutes);

@@ -2,8 +2,8 @@ const jwt = require("jsonwebtoken");
 const AppError = require("../utils/AppError");
 const userRepository = require("../repositories/user.repository");
 
-const JWT_SECRET = process.env.JWT_SECRET || "toolshare_jwt_secret_dev_key_2026";
-
+const config = require("../config/env");
+const JWT_SECRET = config.jwtSecret;
 /**
  * Middleware d'authentification vérifiant le JWT Bearer Token
  */
