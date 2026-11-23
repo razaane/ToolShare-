@@ -16,25 +16,43 @@ async function verifierMateriel(magasinId, materielId) {
   return materiel;
 }
 
+// Erreur Mongo E11000 (index unique) -> 409 au lieu de 500
+function convertirErreurDoublon(err) {
+  if (err && err.code === 11000) {
+    return new AppError("Cette référence existe déjà", 409);
+  }
+  return err;
+}
+
 async function createMateriel(magasinId, data) {
   if (!data.nom || !data.reference) {
     throw new AppError("Le nom et la référence sont obligatoires",400);
   }
 
-  return await materielRepository.create({
-    nom: data.nom,
-    reference: data.reference,
-    magasin: magasinId
-  });
+  try {
+    return await materielRepository.create({
+      nom: data.nom,
+      reference: data.reference,
+      magasin: magasinId
+    });
+  } catch (err) {
+    throw convertirErreurDoublon(err);
+  }
 }
 
 async function updateMateriel(magasinId, materielId, data) {
   await verifierMateriel(magasinId, materielId);
 
-  return await materielRepository.update(materielId, {
-    nom: data.nom,
-    reference: data.reference
-  });
+  // On ne modifie que les champs réellement envoyés
+  const updates = {};
+  if (data.nom !== undefined) updates.nom = data.nom;
+  if (data.reference !== undefined) updates.reference = data.reference;
+
+  try {
+    return await materielRepository.update(materielId, updates);
+  } catch (err) {
+    throw convertirErreurDoublon(err);
+  }
 }
 
 async function desactiverMateriel(magasinId, materielId) {
